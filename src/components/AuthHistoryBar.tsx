@@ -76,7 +76,11 @@ export function AuthHistoryBar({ onSelectHistoryItem }: AuthHistoryBarProps): Re
         });
         setHistory(items);
       },
-      (err) => console.error("[Firestore] Snapshot listener non-fatal error:", err)
+      (err) => {
+        if (err.code !== "permission-denied") {
+          console.error("[Firestore] Snapshot listener non-fatal error:", err);
+        }
+      }
     );
     return () => unsubscribe();
   }, []);

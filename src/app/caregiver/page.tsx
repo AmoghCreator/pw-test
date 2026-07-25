@@ -42,7 +42,9 @@ export default function CaregiverPage(): React.JSX.Element {
         setIsLoading(false);
       },
       (err) => {
-        console.error("[Caregiver Feed] Firestore live sync error:", err);
+        if (err.code !== "permission-denied") {
+          console.error("[Caregiver Feed] Firestore live sync error:", err);
+        }
         setIsLoading(false);
       }
     );

@@ -24,7 +24,7 @@ function getAllFiles(dir, exts = [".ts", ".tsx"]) {
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) {
       results.push(...getAllFiles(full, exts));
-    } else if (exts.includes(extname(full))) {
+    } else if (exts.some((ext) => full.endsWith(ext))) {
       results.push(full);
     }
   }

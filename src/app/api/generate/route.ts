@@ -4,7 +4,7 @@ import { z } from "zod";
 import { BigQuery } from "@google-cloud/bigquery";
 import { writeLog } from "@/lib/logger";
 import { getFirestoreAdmin } from "@/lib/firebase-admin";
-import { generateDualChannelGuidance } from "@/lib/gemini";
+import { generateDualChannelGuidance, getFallbackGuidance } from "@/lib/gemini";
 import { GenerateRequestSchema, ValidatedGenerateRequest, ValidatedGeminiResponse } from "@/lib/validators";
 import { BQ_DATASET, BQ_TABLE, FIRESTORE_SESSIONS_COLLECTION } from "@/lib/constants";
 import type { GenerateResult } from "@/lib/types";
@@ -62,10 +62,29 @@ function handleApiError(err: unknown): NextResponse {
 /** POST /api/generate - Main Route Handler */
 export async function POST(req: Request): Promise<NextResponse> {
   const startTime = Date.now();
+  let body: unknown;
   try {
-    const body: unknown = await req.json();
-    const input = GenerateRequestSchema.parse(body);
-    const guidance = await generateDualChannelGuidance(input);
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ success: false, error: "Invalid request body" }, { status: 400 });
+  }
+
+  const parseResult = GenerateRequestSchema.safeParse(body);
+  if (!parseResult.success) {
+    return handleApiError(parseResult.error);
+  }
+
+  const input = parseResult.data;
+  let guidance: ValidatedGeminiResponse;
+
+  try {
+    guidance = await generateDualChannelGuidance(input);
+  } catch (err) {
+    console.error("[/api/generate] Gemini call failed, utilizing safe fallback:", err);
+    guidance = getFallbackGuidance(input);
+  }
+
+  try {
     const sessionId = await cacheSession(input, guidance);
     const durationMs = Date.now() - startTime;
     await recordTelemetry(input.userId, sessionId, durationMs);

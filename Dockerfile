@@ -5,7 +5,7 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm install --legacy-peer-deps --ignore-scripts
 
 # ── builder stage ────────────────────────────────────────────────────────────
 FROM base AS builder
