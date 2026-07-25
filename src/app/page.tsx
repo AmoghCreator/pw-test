@@ -1,222 +1,99 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from "react";
-import { HeaderNav } from "@/components/HeaderNav";
-import { SanctuaryInputForm } from "@/components/SanctuaryInputForm";
-import { GroundingDisplay } from "@/components/GroundingDisplay";
+import React from "react";
+import { SanctuaryAppWindow } from "@/components/SanctuaryAppWindow";
+import { CaregiverAppWindow } from "@/components/CaregiverAppWindow";
 import { CrisisTakeoverModal } from "@/components/CrisisTakeoverModal";
-import { CaregiverCard } from "@/components/CaregiverCard";
 import { ErrorDisplay } from "@/components/ErrorDisplay";
-import { AuthHistoryBar } from "@/components/AuthHistoryBar";
-import { generateResult } from "@/lib/api";
-import { logAnalyticsEvent } from "@/lib/firebase";
-import { useVoiceConversation } from "@/features/voice/useVoiceConversation";
-import type { GenerateResult, CaregiverFacingOutput, GeminiOutput } from "@/lib/types";
-import type { ValidatedGenerateRequest } from "@/lib/validators";
+import { useDualAppController } from "@/features/dual-app/useDualAppController";
 
-interface FeedItem {
-  id: string;
-  caregiverFacing: CaregiverFacingOutput;
-  createdAt: Date;
-  inputType: string;
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { USER_ROUTE, CAREGIVER_ROUTE } from "@/lib/constants";
+
+/** Nav item for vertical menu */
+function VerticalNavItem({ href, label, isActive, icon }: { href: string; label: string; isActive: boolean; icon: string }): React.JSX.Element {
+  const activeClass = isActive
+    ? "bg-gradient-to-r from-teal-500/20 to-cyan-500/20 text-teal-300 font-bold border-teal-500/40 shadow-sm shadow-teal-500/10"
+    : "text-slate-400 hover:text-white hover:bg-slate-800/60 border-transparent";
+  return (
+    <Link
+      href={href}
+      className={`px-3 py-2.5 rounded-xl text-xs transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-teal-400 flex flex-col items-center gap-1 border ${activeClass} w-20 text-center`}
+      aria-current={isActive ? "page" : undefined}
+    >
+      <span className="text-xl mb-0.5">{icon}</span>
+      <span className="leading-tight">{label}</span>
+    </Link>
+  );
 }
 
-/** Builds a ValidatedGenerateRequest from a spoken transcript */
-function buildVoiceRequest(spokenText: string): ValidatedGenerateRequest {
-  return {
-    userId: "sanctuary-user-01",
-    inputType: "voice",
-    emotionTap: undefined,
-    audioBase64: undefined,
-    imageBase64: undefined,
-    transcriptText: spokenText,
-    userProfile: {
-      name: "User",
-      substanceType: "alcohol",
-      comfortTriggers: ["music", "fresh air", "calling a friend"],
-      copingMechanisms: ["deep breathing", "grounding exercises"],
-      safeContact: "Support contact",
-    },
-  };
+/** Renders the vertical control panel containing branding, navigation, and bridge connector */
+function VerticalControlPanel(): React.JSX.Element {
+  const pathname = usePathname();
+  
+  return (
+    <div className="flex flex-col items-center justify-center gap-8 py-4 px-2 xl:px-4">
+      
+      {/* Brand Icon */}
+      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 p-[1px] shadow-lg shadow-teal-500/20" aria-hidden="true" title="Haven Bridge">
+        <div className="w-full h-full bg-slate-950 rounded-[15px] flex items-center justify-center font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-cyan-300 text-lg">
+          HB
+        </div>
+      </div>
+
+      {/* Vertical Navigation Menu */}
+      <nav aria-label="Main Navigation" className="flex flex-col items-center gap-2.5 bg-slate-900/90 p-2 rounded-[1.5rem] border border-slate-800 shadow-inner backdrop-blur-md">
+        <VerticalNavItem href="/" label="Studio" icon="📱" isActive={pathname === "/"} />
+        <VerticalNavItem href={USER_ROUTE} label="Sanctuary" icon="🌿" isActive={pathname === USER_ROUTE} />
+        <VerticalNavItem href={CAREGIVER_ROUTE} label="Command" icon="🛡️" isActive={pathname === CAREGIVER_ROUTE} />
+      </nav>
+
+      {/* Live Sync Connector */}
+      <div aria-label="Real-time synchronization indicator" role="status" className="bg-slate-900/60 border border-teal-500/30 px-3 py-2 rounded-2xl shadow-lg backdrop-blur-md flex flex-col items-center gap-2 mt-4 w-20 text-center">
+        <span aria-hidden="true" className="w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse shadow-[0_0_10px_rgba(45,212,191,0.8)]" />
+        <span className="text-[9px] font-extrabold text-teal-300 uppercase tracking-widest leading-tight">Live<br/>Sync</span>
+      </div>
+
+    </div>
+  );
+}
+
+/** Grid layout for Sanctuary and Caregiver side-by-side windows */
+function DualWindowGrid({ ctrl }: { ctrl: ReturnType<typeof useDualAppController> }): React.JSX.Element {
+  return (
+    <div className="flex flex-col xl:flex-row items-center justify-center gap-6 xl:gap-8 h-full">
+      <SanctuaryAppWindow
+        onSubmit={ctrl.handleFormSubmit}
+        isLoading={ctrl.isLoading}
+        onCrisisTrigger={ctrl.handleOpenCrisis}
+        voiceMode={ctrl.voiceMode}
+        transcript={ctrl.transcript}
+        interimTranscript={ctrl.interimTranscript}
+        canUseVoice={ctrl.canUseVoice}
+        onStartListening={ctrl.startListening}
+        onStopListening={ctrl.stopListening}
+        userFacingOutput={ctrl.result?.data.user_facing ?? null}
+        onSpeak={ctrl.speakText}
+      />
+      <VerticalControlPanel />
+      <CaregiverAppWindow caregiverFeed={ctrl.caregiverFeed} />
+    </div>
+  );
 }
 
 /** Side-by-side Dual View Home Page */
 export default function HomePage(): React.JSX.Element {
-  const [result, setResult] = useState<GenerateResult | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isCrisisOpen, setIsCrisisOpen] = useState<boolean>(false);
-  const [caregiverFeed, setCaregiverFeed] = useState<FeedItem[]>([]);
-
-  /** Ref to hold speakText so handleCheckin can call it without forward-ref issues */
-  const speakTextRef = useRef<((text: string) => Promise<void>) | null>(null);
-
-  /** Core check-in handler — called by both form submit and voice transcript */
-  const handleCheckin = useCallback(
-    async (request: ValidatedGenerateRequest): Promise<void> => {
-      setIsLoading(true);
-      setError(null);
-      logAnalyticsEvent("generate_start", { inputType: request.inputType });
-      try {
-        const res = await generateResult(request);
-        setResult(res);
-        logAnalyticsEvent("generate_complete", { sessionId: res.sessionId });
-        setCaregiverFeed((prev) => [
-          {
-            id: res.sessionId,
-            caregiverFacing: res.data.caregiver_facing,
-            createdAt: new Date(),
-            inputType: request.inputType,
-          },
-          ...prev,
-        ]);
-        if (res.data.user_facing.suggested_mode === "CRISIS") {
-          setIsCrisisOpen(true);
-        }
-        // Auto-speak the grounding response after Gemini replies
-        if (speakTextRef.current) {
-          await speakTextRef.current(res.data.user_facing.grounding_text);
-        }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Failed to process check-in";
-        setError(msg);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
-  );
-
-  /** Called by the voice hook when a final transcript is ready */
-  const handleVoiceTranscript = useCallback(
-    async (spokenText: string): Promise<void> => {
-      const request = buildVoiceRequest(spokenText);
-      await handleCheckin(request);
-    },
-    [handleCheckin]
-  );
-
-  const {
-    voiceMode,
-    transcript,
-    interimTranscript,
-    canUseVoice,
-    startListening,
-    stopListening,
-    speakText,
-    resetTranscript,
-  } = useVoiceConversation(handleVoiceTranscript);
-
-  // Keep the ref in sync so handleCheckin can call speakText without forward-ref ESLint errors
-  React.useEffect(() => {
-    speakTextRef.current = speakText;
-  }, [speakText]);
-
-  function handleSelectHistoryItem(item: {
-    userFacing: GeminiOutput["user_facing"];
-    caregiverFacing: GeminiOutput["caregiver_facing"];
-  }): void {
-    setResult({
-      sessionId: "history-session",
-      data: {
-        user_facing: item.userFacing,
-        caregiver_facing: item.caregiverFacing,
-      },
-    });
-  }
-
-  async function handleFormSubmit(request: ValidatedGenerateRequest): Promise<void> {
-    resetTranscript();
-    await handleCheckin(request);
-  }
+  const ctrl = useDualAppController();
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col">
-      <HeaderNav />
-      <main id="main-content" tabIndex={-1} className="flex-1 max-w-7xl w-full mx-auto px-4 py-8 space-y-6">
-        <section
-          aria-label="Dual-Window Platform Overview"
-          className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl"
-        >
-          <h2 className="text-2xl font-extrabold text-teal-400 tracking-tight">
-            Haven Bridge — Dual-Window Platform
-          </h2>
-          <p className="text-sm text-slate-300 mt-1 font-medium">
-            Left: The Sanctuary (User zero-typing check-in &amp; calm mode) | Right: Command Center (Caregiver real-time guidance)
-          </p>
-        </section>
-
-        <AuthHistoryBar onSelectHistoryItem={handleSelectHistoryItem} />
-
-        {error && <ErrorDisplay message={error} onRetry={() => setError(null)} />}
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <section
-            aria-label="Sanctuary Window"
-            className="bg-slate-900 border border-slate-800 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl"
-          >
-            <SanctuaryInputForm
-              onSubmit={handleFormSubmit}
-              isLoading={isLoading}
-              onCrisisTrigger={() => setIsCrisisOpen(true)}
-              voiceMode={voiceMode}
-              transcript={transcript}
-              interimTranscript={interimTranscript}
-              canUseVoice={canUseVoice}
-              onStartListening={startListening}
-              onStopListening={stopListening}
-            />
-            {result && (
-              <GroundingDisplay
-                userFacing={result.data.user_facing}
-                onEnterCrisisMode={() => setIsCrisisOpen(true)}
-                voiceMode={voiceMode}
-                onSpeak={speakText}
-              />
-            )}
-          </section>
-
-          <section
-            aria-label="Caregiver Command Center Feed Window"
-            className="bg-slate-900 border border-slate-800 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl"
-          >
-            <header className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <div>
-                <h3 className="text-xl font-extrabold text-white tracking-tight">Caregiver Command Feed</h3>
-                <p className="text-xs text-slate-400 font-medium">Real-time synchronized guidance cards</p>
-              </div>
-              <span className="text-xs bg-teal-950 text-teal-300 border border-teal-700 px-3 py-1 rounded-full font-bold shadow-sm">
-                {caregiverFeed.length} Cards
-              </span>
-            </header>
-
-            <div role="status" aria-live="polite" className="space-y-4 max-h-[700px] overflow-y-auto pr-1">
-              {caregiverFeed.length === 0 ? (
-                <div className="text-center py-12 text-slate-500 border border-dashed border-slate-800 rounded-xl">
-                  <p className="text-sm font-medium">No guidance cards generated yet.</p>
-                  <p className="text-xs text-slate-600 mt-1">Perform a check-in on the left to trigger Gemini response.</p>
-                </div>
-              ) : (
-                caregiverFeed.map((item) => (
-                  <CaregiverCard
-                    key={item.id}
-                    id={item.id}
-                    caregiverFacing={item.caregiverFacing}
-                    createdAt={item.createdAt}
-                    inputType={item.inputType}
-                  />
-                ))
-              )}
-            </div>
-          </section>
-        </div>
+    <div className="min-h-screen bg-slate-950 text-white flex flex-col selection:bg-teal-500 selection:text-slate-950 overflow-hidden">
+      <main id="main-content" tabIndex={0} className="flex-1 w-full max-w-[1800px] mx-auto px-2 sm:px-4 py-4 flex flex-col justify-center items-center focus:outline-none min-h-screen h-screen">
+        {ctrl.error && <ErrorDisplay message={ctrl.error} onRetry={ctrl.handleClearError} />}
+        <DualWindowGrid ctrl={ctrl} />
       </main>
-
-      <CrisisTakeoverModal
-        isOpen={isCrisisOpen}
-        groundingText={result?.data.user_facing.grounding_text ?? "Take a slow, deep breath."}
-        onClose={() => setIsCrisisOpen(false)}
-      />
+      <CrisisTakeoverModal isOpen={ctrl.isCrisisOpen} groundingText={ctrl.result?.data.user_facing.grounding_text ?? "Take a slow, deep breath."} onClose={ctrl.handleCloseCrisis} />
     </div>
   );
 }
+

@@ -1,12 +1,11 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 body {
   background-color: #020617;
   color: #f8fafc;
-  background-image: radial-gradient(at 20% 20%, rgba(13, 148, 136, 0.08) 0px, transparent 50%),
-                    radial-gradient(at 80% 80%, rgba(15, 23, 42, 0.9) 0px, transparent 50%);
+  background-image: radial-gradient(at 15% 15%, rgba(16, 185, 129, 0.12) 0px, transparent 45%),
+                    radial-gradient(at 85% 85%, rgba(6, 182, 212, 0.12) 0px, transparent 45%),
+                    radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.95) 0px, transparent 70%);
 }
 
 ::selection {
@@ -70,5 +69,15 @@ body {
 
 .animate-speaker-pulse {
   animation: speaker-pulse 0.7s ease-in-out infinite;
+}
+
+@keyframes data-stream {
+  0% { transform: translateX(-100%); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+
+.animate-data-stream {
+  animation: data-stream 2.5s infinite linear;
 }
 

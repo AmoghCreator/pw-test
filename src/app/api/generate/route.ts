@@ -59,32 +59,37 @@ function handleApiError(err: unknown): NextResponse {
   );
 }
 
+/** Executes guidance generation with fallback safety */
+async function getGuidanceData(input: ValidatedGenerateRequest): Promise<ValidatedGeminiResponse> {
+  try {
+    return await generateDualChannelGuidance(input);
+  } catch (err) {
+    console.error("[/api/generate] Gemini call failed, utilizing safe fallback:", err);
+    return getFallbackGuidance(input);
+  }
+}
+
+/** Parses and validates incoming JSON request body */
+async function parseRequestBody(req: Request): Promise<ValidatedGenerateRequest | null> {
+  try {
+    const body = await req.json();
+    const parseResult = GenerateRequestSchema.safeParse(body);
+    return parseResult.success ? parseResult.data : null;
+  } catch {
+    return null;
+  }
+}
+
 /** POST /api/generate - Main Route Handler */
 export async function POST(req: Request): Promise<NextResponse> {
   const startTime = Date.now();
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ success: false, error: "Invalid request body" }, { status: 400 });
-  }
-
-  const parseResult = GenerateRequestSchema.safeParse(body);
-  if (!parseResult.success) {
-    return handleApiError(parseResult.error);
-  }
-
-  const input = parseResult.data;
-  let guidance: ValidatedGeminiResponse;
-
-  try {
-    guidance = await generateDualChannelGuidance(input);
-  } catch (err) {
-    console.error("[/api/generate] Gemini call failed, utilizing safe fallback:", err);
-    guidance = getFallbackGuidance(input);
+  const input = await parseRequestBody(req);
+  if (!input) {
+    return NextResponse.json({ success: false, error: "Invalid request data" }, { status: 400 });
   }
 
   try {
+    const guidance = await getGuidanceData(input);
     const sessionId = await cacheSession(input, guidance);
     const durationMs = Date.now() - startTime;
     await recordTelemetry(input.userId, sessionId, durationMs);

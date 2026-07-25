@@ -97,3 +97,50 @@ export interface UiState {
   lastSession: SessionDocument | null;
   errorMessage: string | null;
 }
+
+// ── Feed & Windows ─────────────────────────────────────────────────────────────
+
+export interface FeedItem {
+  id: string;
+  caregiverFacing: CaregiverFacingOutput;
+  createdAt: Date;
+  inputType: string;
+}
+
+export interface SanctuaryAppWindowProps {
+  onSubmit: (request: import("./validators").ValidatedGenerateRequest) => Promise<void>;
+  isLoading: boolean;
+  onCrisisTrigger: () => void;
+  voiceMode: VoiceMode;
+  transcript: string;
+  interimTranscript: string;
+  canUseVoice: boolean;
+  onStartListening: () => void;
+  onStopListening: () => void;
+  userFacingOutput: UserFacingOutput | null;
+  onSpeak: (text: string) => Promise<void>;
+}
+
+export interface CaregiverAppWindowProps {
+  caregiverFeed: FeedItem[];
+}
+
+export interface DualAppController {
+  result: GenerateResult | null;
+  isLoading: boolean;
+  error: string | null;
+  isCrisisOpen: boolean;
+  caregiverFeed: FeedItem[];
+  voiceMode: VoiceMode;
+  transcript: string;
+  interimTranscript: string;
+  canUseVoice: boolean;
+  startListening: () => void;
+  stopListening: () => void;
+  speakText: (text: string) => Promise<void>;
+  handleFormSubmit: (request: import("./validators").ValidatedGenerateRequest) => Promise<void>;
+  handleSelectHistoryItem: (item: { userFacing: GeminiOutput["user_facing"]; caregiverFacing: GeminiOutput["caregiver_facing"] }) => void;
+  handleClearError: () => void;
+  handleOpenCrisis: () => void;
+  handleCloseCrisis: () => void;
+}

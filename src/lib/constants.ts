@@ -4,7 +4,7 @@
  */
 
 // ── Gemini ────────────────────────────────────────────────────────────────────
-export const GEMINI_MODEL = "gemini-2.5-flash" as const;
+export const GEMINI_MODEL = "gemini-flash-latest" as const;
 export const GEMINI_TEMPERATURE = 0.2;
 export const GEMINI_MAX_OUTPUT_TOKENS = 8192;
 

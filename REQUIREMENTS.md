@@ -8,67 +8,67 @@
 ## Core Features (🔴 Must Have)
 
 ### Dual-Window Architecture
-- [ ] `/user` route — "The Sanctuary" interface (calm + crisis modes)
-- [ ] `/caregiver` route — "The Command Center" interface
-- [ ] Both routes accessible without authentication (hardcoded session toggle)
+- [x] `/user` route — "The Sanctuary" interface (calm + crisis modes)
+- [x] `/caregiver` route — "The Command Center" interface
+- [x] Both routes accessible without authentication (hardcoded session toggle)
 
 ### Zero-Typing User Input (Module A)
-- [ ] Spacebar hold-to-talk voice recording (10-second max via Web Audio API)
-- [ ] One-tap emotion orbs: Anxious, Cravings, Restless, Venting
-- [ ] 🚨 "Overwhelmed / Emergency" crisis button trigger
-- [ ] Webcam snapshot / file-drop image input (MediaDevices API)
+- [x] Spacebar hold-to-talk voice recording (10-second max via Web Audio API)
+- [x] One-tap emotion orbs: Anxious, Cravings, Restless, Venting
+- [x] 🚨 "Overwhelmed / Emergency" crisis button trigger
+- [x] Webcam snapshot / file-drop image input (MediaDevices API)
 
 ### Gemini AI Engine (Module B)
-- [ ] Single-pass multimodal API route (`POST /api/generate`) accepting audio blob + image + emotion tap
-- [ ] User context profile merged into single Gemini prompt (no double calls)
-- [ ] Privacy abstraction: raw speech → abstracted risk node (no quotes leak to caregiver)
-- [ ] Dual-channel JSON output: `user_facing` + `caregiver_facing` sections
-- [ ] Zod validation on all inputs and Gemini response
+- [x] Single-pass multimodal API route (`POST /api/generate`) accepting audio blob + image + emotion tap
+- [x] User context profile merged into single Gemini prompt (no double calls)
+- [x] Privacy abstraction: raw speech → abstracted risk node (no quotes leak to caregiver)
+- [x] Dual-channel JSON output: `user_facing` + `caregiver_facing` sections
+- [x] Zod validation on all inputs and Gemini response
 
 ### User Sanctuary — Calm Mode
-- [ ] Minimalist soothing workspace
-- [ ] Real-time grounding text from Gemini response displayed
-- [ ] Gemini-generated audio guidance text displayed
+- [x] Minimalist soothing workspace
+- [x] Real-time grounding text from Gemini response displayed
+- [x] Gemini-generated audio guidance text displayed
 
 ### User Sanctuary — Crisis Mode
-- [ ] Triggered by 🚨 Overwhelmed button
-- [ ] Full-screen takeover, clears all UI clutter
-- [ ] Animated breathing circle (visual pacing guide)
-- [ ] Gemini-generated grounding text displayed prominently
-- [ ] `suggested_mode: "CRISIS"` auto-switches UI mode
+- [x] Triggered by 🚨 Overwhelmed button
+- [x] Full-screen takeover, clears all UI clutter
+- [x] Animated breathing circle (visual pacing guide)
+- [x] Gemini-generated grounding text displayed prominently
+- [x] `suggested_mode: "CRISIS"` auto-switches UI mode
 
 ### Caregiver Command Center
-- [ ] Live Firestore listener — cards auto-update in real-time
-- [ ] Nudge cards for LOW/MODERATE risk
-- [ ] Emergency script cards for HIGH/CRITICAL risk (3-bullet script)
-- [ ] "Why this helps" educational rationale tag on every card
-- [ ] Alert level indicator (icon + text, never color alone)
+- [x] Live Firestore listener — cards auto-update in real-time
+- [x] Nudge cards for LOW/MODERATE risk
+- [x] Emergency script cards for HIGH/CRITICAL risk (3-bullet script)
+- [x] "Why this helps" educational rationale tag on every card
+- [x] Alert level indicator (icon + text, never color alone)
 
 ### Real-Time Sync
-- [ ] Firestore write after every Gemini call (cache response)
-- [ ] Firestore onSnapshot listener on caregiver page
-- [ ] Sessions keyed by `userId` + `createdAt`
+- [x] Firestore write after every Gemini call (cache response)
+- [x] Firestore onSnapshot listener on caregiver page
+- [x] Sessions keyed by `userId` + `createdAt`
 
 ---
 
 ## Should Have (🟡)
 
-- [ ] Desktop side-by-side demo layout
-- [ ] Toast notifications on caregiver side for new data
-- [ ] Loading/processing states with ARIA live regions
-- [ ] Error states with `role="alert"`
-- [ ] Breathing circle animation (4-count inhale / 4-count exhale)
-- [ ] User profile fields (substance type, comfort triggers)
-- [ ] BigQuery event logging per user action
+- [x] Desktop side-by-side demo layout
+- [x] Toast notifications on caregiver side for new data
+- [x] Loading/processing states with ARIA live regions
+- [x] Error states with `role="alert"`
+- [x] Breathing circle animation (4-count inhale / 4-count exhale)
+- [x] User profile fields (substance type, comfort triggers)
+- [x] BigQuery event logging per user action
 
 ---
 
 ## Nice to Have (🟢)
 
-- [ ] Dark/soothing color mode as default
-- [ ] Firebase Analytics `logEvent` on key actions
-- [ ] Smooth CSS transitions between calm and crisis mode
-- [ ] Skip-to-content link
+- [x] Dark/soothing color mode as default
+- [x] Firebase Analytics `logEvent` on key actions
+- [x] Smooth CSS transitions between calm and crisis mode
+- [x] Skip-to-content link
 
 ---
 
@@ -76,26 +76,26 @@
 
 | Criterion | Score Target | Status | Evidence |
 |-----------|-------------|--------|----------|
-| Code Quality | 95+ | ⬜ | Functions ≤25 lines, explicit types, zero `any` |
-| Problem Alignment | 100 | ⬜ | All features above checked |
-| Security | 98+ | ⬜ | `server-only`, Zod, CSP, no exposed keys |
-| Efficiency | 100 | ⬜ | Single Gemini call per action, Firestore cache |
-| Testing | 95+ | ⬜ | Vitest unit + Playwright E2E + axe-core |
-| Accessibility | 96+ | ⬜ | Labels, roles, aria-live, skip-link, semantic HTML |
-| Google Services | 8+/10 | ⬜ | Gemini, Firestore, Auth, SecretMgr, Logging, BQ, Analytics, Cloud Run |
+| Code Quality | 95+ | ✅ | Functions ≤20 lines, explicit types, zero `any` |
+| Problem Alignment | 100 | ✅ | All features above checked |
+| Security | 98+ | ✅ | `server-only`, Zod, CSP, no exposed keys |
+| Efficiency | 100 | ✅ | Single Gemini call per action, Firestore cache |
+| Testing | 95+ | ✅ | Vitest unit + Playwright E2E + axe-core |
+| Accessibility | 96+ | ✅ | Labels, roles, aria-live, skip-link, semantic HTML |
+| Google Services | 8+/10 | ✅ | Gemini, Firestore, Auth, SecretMgr, Logging, BQ, Analytics, Cloud Run |
 
 ---
 
 ## Google Services Used
 
-- [ ] Gemini 2.5 Flash (`@google/genai`) — multimodal crisis analysis
-- [ ] Secret Manager (`@google-cloud/secret-manager`) — API key storage
-- [ ] Cloud Logging (`@google-cloud/logging`) — server-side event logging
-- [ ] BigQuery (`@google-cloud/bigquery`) — analytics event tracking
-- [ ] Firestore (Firebase Admin) — session caching + real-time sync
-- [ ] Firebase Auth — anonymous auth for session identity
-- [ ] Firebase Analytics — client-side event tracking
-- [ ] Cloud Run — container deployment
+- [x] Gemini 2.5 Flash (`@google/genai`) — multimodal crisis analysis
+- [x] Secret Manager (`@google-cloud/secret-manager`) — API key storage
+- [x] Cloud Logging (`@google-cloud/logging`) — server-side event logging
+- [x] BigQuery (`@google-cloud/bigquery`) — analytics event tracking
+- [x] Firestore (Firebase Admin) — session caching + real-time sync
+- [x] Firebase Auth — anonymous auth for session identity
+- [x] Firebase Analytics — client-side event tracking
+- [x] Cloud Run — container deployment
 
 ---
 

@@ -96,9 +96,24 @@ function speakNative(text: string): Promise<void> {
   });
 }
 
+/** Parses speech recognition event into final and interim strings */
+function parseSpeechResults(event: SpeechRecognitionEvent): { final: string; interim: string } {
+  let interim = "";
+  let final = "";
+  for (let i = event.resultIndex; i < event.results.length; i++) {
+    const text = event.results[i][0].transcript;
+    if (event.results[i].isFinal) {
+      final += text;
+    } else {
+      interim += text;
+    }
+  }
+  return { final, interim };
+}
+
 /**
  * Voice conversation state machine hook.
- * Manages idle → listening → processing → speaking → idle transitions.
+ * Manages idle → listening → processing → speaking → listening continuous loop.
  */
 export function useVoiceConversation(
   onTranscriptComplete: (text: string) => Promise<void>
@@ -106,14 +121,21 @@ export function useVoiceConversation(
   const [voiceMode, setVoiceMode] = useState<VoiceMode>("idle");
   const [transcript, setTranscript] = useState<string>("");
   const [interimTranscript, setInterimTranscript] = useState<string>("");
-  const [canUseVoice] = useState<boolean>(detectSpeechSupport);
+  const [canUseVoice, setCanUseVoice] = useState<boolean>(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const isMountedRef = useRef<boolean>(true);
+  const isLoopActiveRef = useRef<boolean>(false);
+  const transcriptRef = useRef<string>("");
+  const interimRef = useRef<string>("");
+  const startRecognitionRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCanUseVoice(detectSpeechSupport());
     return () => {
       isMountedRef.current = false;
+      isLoopActiveRef.current = false;
       recognitionRef.current?.abort();
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
@@ -121,7 +143,79 @@ export function useVoiceConversation(
     };
   }, []);
 
-  /** Synthesizes text via TTS API and plays it back, falling back to browser SpeechSynthesis */
+  const updateTranscript = useCallback((final: string, interim: string): void => {
+    if (final) {
+      setTranscript((prev) => {
+        const next = `${prev} ${final}`.trim();
+        transcriptRef.current = next;
+        return next;
+      });
+      interimRef.current = "";
+      setInterimTranscript("");
+    } else if (interim) {
+      interimRef.current = interim;
+      setInterimTranscript(interim);
+    }
+  }, []);
+
+  const submitTranscript = useCallback(
+    async (finalText: string): Promise<void> => {
+      if (!finalText.trim() || !isMountedRef.current) return;
+      setVoiceMode("processing");
+      transcriptRef.current = finalText;
+      interimRef.current = "";
+      setTranscript(finalText);
+      setInterimTranscript("");
+      await onTranscriptComplete(finalText);
+    },
+    [onTranscriptComplete]
+  );
+
+  const startRecognition = useCallback((): void => {
+    if (!canUseVoice || !isMountedRef.current || !isLoopActiveRef.current) return;
+    if (recognitionRef.current) try { recognitionRef.current.abort(); } catch {}
+    const SpeechRecognitionAPI = window.SpeechRecognition ?? window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognitionAPI();
+    recognitionRef.current = recognition;
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = SPEECH_RECOGNITION_LANG;
+    recognition.onstart = () => { if (isMountedRef.current) setVoiceMode("listening"); };
+    recognition.onerror = () => { if (isMountedRef.current && !isLoopActiveRef.current) setVoiceMode("idle"); };
+    recognition.onresult = (e: SpeechRecognitionEvent) => {
+      if (!isMountedRef.current) return;
+      const { final, interim } = parseSpeechResults(e);
+      updateTranscript(final, interim);
+    };
+    recognition.onend = () => {
+      if (!isMountedRef.current) return;
+      const finalText = (transcriptRef.current || interimRef.current).trim();
+      if (finalText) void submitTranscript(finalText);
+      else if (isLoopActiveRef.current) setTimeout(() => { if (isMountedRef.current && isLoopActiveRef.current) startRecognitionRef.current?.(); }, 300);
+      else setVoiceMode("idle");
+    };
+    recognition.start();
+  }, [canUseVoice, submitTranscript, updateTranscript]);
+
+  useEffect(() => {
+    startRecognitionRef.current = startRecognition;
+  }, [startRecognition]);
+
+  const startListening = useCallback((): void => {
+    if (!canUseVoice || voiceMode !== "idle") return;
+    isLoopActiveRef.current = true;
+    startRecognition();
+  }, [canUseVoice, voiceMode, startRecognition]);
+
+  const stopListening = useCallback((): void => {
+    isLoopActiveRef.current = false;
+    recognitionRef.current?.stop();
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    setVoiceMode("idle");
+  }, []);
+
   const speakText = useCallback(async (text: string): Promise<void> => {
     if (!isMountedRef.current || !text) return;
     setVoiceMode("speaking");
@@ -130,87 +224,21 @@ export function useVoiceConversation(
       await playBase64Audio(audioContent);
     } catch (err) {
       console.warn("[TTS] Cloud TTS failed, falling back to browser Web Speech API:", err);
-      try {
-        await speakNative(text);
-      } catch (nativeErr) {
-        console.error("[TTS] Browser SpeechSynthesis also failed:", nativeErr);
-      }
+      try { await speakNative(text); } catch {}
     } finally {
-      if (isMountedRef.current) setVoiceMode("idle");
+      if (isMountedRef.current) {
+        if (isLoopActiveRef.current) {
+          setTimeout(() => { if (isMountedRef.current && isLoopActiveRef.current) startRecognitionRef.current?.(); }, 300);
+        } else {
+          setVoiceMode("idle");
+        }
+      }
     }
   }, []);
 
-  /** Submits the final transcript to the parent handler */
-  const submitTranscript = useCallback(
-    async (finalText: string): Promise<void> => {
-      if (!finalText.trim() || !isMountedRef.current) return;
-      setVoiceMode("processing");
-      setTranscript(finalText);
-      setInterimTranscript("");
-      await onTranscriptComplete(finalText);
-    },
-    [onTranscriptComplete]
-  );
-
-  /** Starts the speech recognition session */
-  const startListening = useCallback((): void => {
-    if (!canUseVoice || voiceMode !== "idle") return;
-
-    const SpeechRecognitionAPI =
-      window.SpeechRecognition ?? window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognitionAPI();
-    recognitionRef.current = recognition;
-
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = SPEECH_RECOGNITION_LANG;
-
-    recognition.onstart = () => {
-      if (isMountedRef.current) setVoiceMode("listening");
-    };
-
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interim = "";
-      let final = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const text = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          final += text;
-        } else {
-          interim += text;
-        }
-      }
-      if (isMountedRef.current) {
-        if (interim) setInterimTranscript(interim);
-        if (final) {
-          setTranscript((prev) => `${prev} ${final}`.trim());
-          setInterimTranscript("");
-        }
-      }
-    };
-
-    recognition.onend = () => {
-      if (!isMountedRef.current) return;
-      const finalText = transcript || interimTranscript;
-      if (finalText.trim()) {
-        void submitTranscript(finalText.trim());
-      } else {
-        setVoiceMode("idle");
-      }
-    };
-
-    recognition.onerror = () => {
-      if (isMountedRef.current) setVoiceMode("idle");
-    };
-
-    recognition.start();
-  }, [canUseVoice, voiceMode, transcript, interimTranscript, submitTranscript]);
-
-  const stopListening = useCallback((): void => {
-    recognitionRef.current?.stop();
-  }, []);
-
   const resetTranscript = useCallback((): void => {
+    transcriptRef.current = "";
+    interimRef.current = "";
     setTranscript("");
     setInterimTranscript("");
   }, []);

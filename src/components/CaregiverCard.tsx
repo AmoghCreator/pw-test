@@ -20,82 +20,82 @@ function AlertBadge({ level }: { level: AlertLevel }): React.JSX.Element {
   }[level];
 
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${config.bg}`}
-    >
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${config.bg}`}>
       <span aria-hidden="true">{config.icon}</span>
       <span>{level} RISK</span>
     </span>
   );
 }
 
+/** Header section of Caregiver card */
+function CaregiverCardHeader({ level, inputType, createdAt }: { level: AlertLevel; inputType?: string; createdAt?: string | Date }): React.JSX.Element {
+  return (
+    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+      <div className="flex items-center gap-2">
+        <AlertBadge level={level} />
+        {inputType && <span className="text-xs text-slate-300 bg-slate-950 border border-slate-800 px-2.5 py-0.5 rounded-lg font-medium">Type: {inputType}</span>}
+      </div>
+      <span className="text-xs font-semibold text-slate-400">{createdAt ? new Date(createdAt).toLocaleTimeString() : "Just now"}</span>
+    </header>
+  );
+}
+
+/** Privacy safe summary section */
+function CaregiverPrivacySection({ summary }: { summary: string }): React.JSX.Element {
+  return (
+    <section aria-label="Privacy Safe Context" className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+      <h4 className="text-xs uppercase font-bold text-slate-400 tracking-wider">Privacy-Safe Context</h4>
+      <p className="text-sm text-slate-100 mt-1 font-semibold leading-relaxed">{summary}</p>
+      <p className="text-[11px] text-teal-400 italic mt-1 font-medium flex items-center gap-1">
+        <span>🔒</span> User speech abstracted for privacy — no raw quotes shared.
+      </p>
+    </section>
+  );
+}
+
+/** Action script list section */
+function CaregiverActionScript({ isEmergency, steps }: { isEmergency: boolean; steps: string[] }): React.JSX.Element {
+  return (
+    <section aria-label="Action Script">
+      <h4 className="text-xs uppercase font-bold text-slate-400 tracking-wider mb-2">
+        {isEmergency ? "🚨 Emergency Response Script" : "💡 Recommended Nudge Steps"}
+      </h4>
+      <ol className="list-decimal list-inside space-y-2 text-sm text-slate-200">
+        {steps.map((step, idx) => (
+          <li key={idx} className="bg-slate-950 p-3 rounded-xl border border-slate-800 font-medium leading-relaxed shadow-inner">{step}</li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/** Educational rationale footer */
+function CaregiverFooterRationale({ rationale }: { rationale: string }): React.JSX.Element {
+  return (
+    <footer className="pt-2 border-t border-slate-800">
+      <div className="bg-teal-950/80 border border-teal-800 p-3.5 rounded-xl">
+        <span className="text-xs font-bold text-teal-300 block mb-1 uppercase tracking-wider">Why This Helps:</span>
+        <p className="text-xs text-slate-200 leading-relaxed font-medium">{rationale}</p>
+      </div>
+    </footer>
+  );
+}
+
 /** Caregiver Nudge / Emergency Script Card */
-export function CaregiverCard({
-  id,
-  caregiverFacing,
-  createdAt,
-  inputType,
-}: CaregiverCardProps): React.JSX.Element {
+export function CaregiverCard({ id, caregiverFacing, createdAt, inputType }: CaregiverCardProps): React.JSX.Element {
   const isEmergency = caregiverFacing.alert_level === "HIGH" || caregiverFacing.alert_level === "CRITICAL";
 
   return (
     <article
       data-testid={`caregiver-card-${id}`}
       className={`rounded-2xl p-6 border shadow-2xl space-y-4 transition-all text-white ${
-        isEmergency
-          ? "bg-slate-900 border-red-700/80 ring-1 ring-red-500/40 shadow-red-950/40"
-          : "bg-slate-900 border-slate-700/80"
+        isEmergency ? "bg-slate-900 border-red-700/80 ring-1 ring-red-500/40 shadow-red-950/40" : "bg-slate-900 border-slate-700/80"
       }`}
     >
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
-        <div className="flex items-center gap-2">
-          <AlertBadge level={caregiverFacing.alert_level} />
-          {inputType && (
-            <span className="text-xs text-slate-300 bg-slate-950 border border-slate-800 px-2.5 py-0.5 rounded-lg font-medium">
-              Type: {inputType}
-            </span>
-          )}
-        </div>
-        <span className="text-xs font-semibold text-slate-400">
-          {createdAt ? new Date(createdAt).toLocaleTimeString() : "Just now"}
-        </span>
-      </header>
-
-      <section aria-label="Privacy Safe Context" className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-        <h4 className="text-xs uppercase font-bold text-slate-400 tracking-wider">
-          Privacy-Safe Context
-        </h4>
-        <p className="text-sm text-slate-100 mt-1 font-semibold leading-relaxed">
-          {caregiverFacing.privacy_safe_summary}
-        </p>
-        <p className="text-[11px] text-teal-400 italic mt-1 font-medium flex items-center gap-1">
-          <span>🔒</span> User speech abstracted for privacy — no raw quotes shared.
-        </p>
-      </section>
-
-      <section aria-label="Action Script">
-        <h4 className="text-xs uppercase font-bold text-slate-400 tracking-wider mb-2">
-          {isEmergency ? "🚨 Emergency Response Script" : "💡 Recommended Nudge Steps"}
-        </h4>
-        <ol className="list-decimal list-inside space-y-2 text-sm text-slate-200">
-          {caregiverFacing.action_script.map((step, idx) => (
-            <li key={idx} className="bg-slate-950 p-3 rounded-xl border border-slate-800 font-medium leading-relaxed shadow-inner">
-              {step}
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <footer className="pt-2 border-t border-slate-800">
-        <div className="bg-teal-950/80 border border-teal-800 p-3.5 rounded-xl">
-          <span className="text-xs font-bold text-teal-300 block mb-1 uppercase tracking-wider">
-            Why This Helps:
-          </span>
-          <p className="text-xs text-slate-200 leading-relaxed font-medium">
-            {caregiverFacing.educational_rationale}
-          </p>
-        </div>
-      </footer>
+      <CaregiverCardHeader level={caregiverFacing.alert_level} inputType={inputType} createdAt={createdAt} />
+      <CaregiverPrivacySection summary={caregiverFacing.privacy_safe_summary} />
+      <CaregiverActionScript isEmergency={isEmergency} steps={caregiverFacing.action_script} />
+      <CaregiverFooterRationale rationale={caregiverFacing.educational_rationale} />
     </article>
   );
 }
