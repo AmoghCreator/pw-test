@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Sessions: allow client read for dual-window live sync, block all client writes (API route only)
+    match /sessions/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /results/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,41 @@
+.env.local
+.env*.local
+.env
+
+# Skill harness — never submitted to judge
+PLAYBOOK.md
+PROBLEM_STATEMENT.md
+WARMUP_PHASE.md
+MAIN_STRATEGY.md
+warmup-results.json
+.github/prompts/
+scripts/warmup-analyze.mjs
+deploy.md
+DEPLOY.md
+
+
+# Firebase
+.firebase/
+*-debug.log
+firestore-debug.log
+firebase-debug.log
+hosting-debug.log
+ui-debug.log
+
+# Next.js
+.next/
+out/
+.vercel
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Testing
+coverage/
+playwright-report/
+test-results/
+
+# Build
+dist/
+lib/
