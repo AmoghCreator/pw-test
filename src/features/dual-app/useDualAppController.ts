@@ -28,13 +28,29 @@ function appendFeedItem(res: GenerateResult, inputType: string, setFeed: React.D
   setFeed((prev) => [{ id: res.sessionId, caregiverFacing: res.data.caregiver_facing, createdAt: new Date(), inputType }, ...prev]);
 }
 
+const INITIAL_CHECKIN_ITEM: FeedItem = {
+  id: "initial-checkin-01",
+  createdAt: new Date(),
+  inputType: "Check-in",
+  caregiverFacing: {
+    alert_level: "LOW",
+    privacy_safe_summary: "Patient opened Sanctuary active recovery app and completed daily check-in.",
+    action_script: [
+      "Acknowledge the daily check-in with a positive reinforcement nudge.",
+      "Check in on their daily active recovery goals if appropriate.",
+      "No urgent action required; continue passive supportive monitoring.",
+    ],
+    educational_rationale: "Regular daily check-ins establish a consistent habit loop that strengthens resilience and early intervention.",
+  },
+};
+
 /** Manages core dual-app state variables */
 function useDualAppState() {
   const [result, setResult] = useState<GenerateResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isCrisisOpen, setIsCrisisOpen] = useState<boolean>(false);
-  const [caregiverFeed, setCaregiverFeed] = useState<FeedItem[]>([]);
+  const [caregiverFeed, setCaregiverFeed] = useState<FeedItem[]>([INITIAL_CHECKIN_ITEM]);
   return { result, setResult, isLoading, setIsLoading, error, setError, isCrisisOpen, setIsCrisisOpen, caregiverFeed, setCaregiverFeed };
 }
 

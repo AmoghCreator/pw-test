@@ -40,6 +40,7 @@ INSTRUCTIONS:
 3. Set suggested_mode to "CRISIS" only if extreme distress/relapse ideation exists.
 4. For normal check-ins, use "CALM" mode with empathetic guidance.
 5. Reference what the user said in grounding_text. Make them feel heard.
+6. GUIDED EXERCISE MANDATE: If the user requests a meditation, breathing exercise, grounding technique, or visualization (e.g. garden meditation, body scan, 5-4-3-2-1), you MUST provide a COMPLETE, fully guided, multi-step walkthrough in grounding_text from beginning to end. Do NOT stop after just an introductory sentence or single breath. Provide at least 5 to 7 detailed, calming steps (settling in, rhythmic breathing, rich sensory immersion, deepening relaxation, walking through the full visualization, and gentle closing/re-centering) so the user experiences a thorough, satisfying session.
 ${PRIVACY_MANDATE}`;
 }
 
@@ -65,14 +66,30 @@ function buildContentParts(input: ValidatedGenerateRequest): Part[] {
   return parts;
 }
 
+/** Detects if user requested a guided exercise in their transcript */
+function isExerciseRequest(text?: string): boolean {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return lower.includes("meditat") || lower.includes("breath") || lower.includes("grounding") || lower.includes("garden");
+}
+
+/** Generates a complete 6-step guided meditation for fallback requests */
+function getGuidedMeditationFallback(): string {
+  return "I hear that you're reaching out for a meditation to center yourself. Let's take a deep breath together and begin a complete guided journey.\n\nStep 1: Find a comfortable, quiet seated position. Gently close your eyes and let your shoulders relax away from your ears.\n\nStep 2: Take a slow, deep breath in through your nose for 4 seconds... filling your lungs completely... hold for 2 seconds... and exhale gently through your mouth for 6 seconds.\n\nStep 3: Picture a quiet, peaceful garden filled with fresh morning air and vibrant greenery. Imagine stepping barefoot onto a soft, cool mossy path.\n\nStep 4: As you walk along the calm garden path, notice the gentle warmth of sunlight filtering through the canopy above, touching your skin with comforting warmth.\n\nStep 5: Listen to the soothing sound of a distant trickling stream and the gentle rustle of leaves in a light breeze. With every breath you take, feel yourself becoming more centered, safe, and deeply relaxed.\n\nStep 6: When you are ready, take one final deep, refreshing breath in this tranquil sanctuary. Slowly wiggle your fingers and toes, open your eyes, and carry this peaceful calm back into your day.";
+}
+
+/** Resolves fallback grounding text based on user request */
+function resolveFallbackGroundingText(input: ValidatedGenerateRequest, isCrisis: boolean, emotionLabel: string): string {
+  if (isCrisis) return "Pause and feel your feet flat on the floor. Take a 4-second slow breath in, hold, and release slowly.";
+  if (isExerciseRequest(input.transcriptText)) return getGuidedMeditationFallback();
+  if (input.transcriptText) return `Thank you for sharing. I hear you — you mentioned feeling ${emotionLabel.toLowerCase()}. Let's work through this together. Notice 3 calming things around you right now.`;
+  return `You are taking a positive step by checking in. You selected '${emotionLabel}' — that takes self-awareness. Notice 3 calming things around you right now.`;
+}
+
 /** Fallback user guidance generator */
 function getFallbackUserFacing(input: ValidatedGenerateRequest, isCrisis: boolean, emotionLabel: string) {
   return {
-    grounding_text: isCrisis
-      ? "Pause and feel your feet flat on the floor. Take a 4-second slow breath in, hold, and release slowly."
-      : input.transcriptText
-      ? `Thank you for sharing. I hear you — you mentioned feeling ${emotionLabel.toLowerCase()}. Let's work through this together. Notice 3 calming things around you right now.`
-      : `You are taking a positive step by checking in. You selected '${emotionLabel}' — that takes self-awareness. Notice 3 calming things around you right now.`,
+    grounding_text: resolveFallbackGroundingText(input, isCrisis, emotionLabel),
     emotional_state: emotionLabel,
     suggested_mode: (isCrisis ? "CRISIS" : "CALM") as "CRISIS" | "CALM",
   };

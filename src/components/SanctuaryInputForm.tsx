@@ -176,9 +176,30 @@ function SanctuaryFormHeader({ onCrisisTrigger }: { onCrisisTrigger: () => void 
   );
 }
 
+/** Text input field for typing thoughts */
+function TextSection({ typedText, onTextChange, disabled }: { typedText: string; onTextChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; disabled: boolean }): React.JSX.Element {
+  return (
+    <div className="border border-slate-800 rounded-2xl p-5 bg-slate-900 shadow-md">
+      <label htmlFor="sanctuary-text-input" className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+        <span>💬</span> Type Your Thoughts / Journal (Optional)
+      </label>
+      <textarea
+        id="sanctuary-text-input"
+        rows={2}
+        disabled={disabled}
+        value={typedText}
+        onChange={onTextChange}
+        placeholder="Type what's on your mind... (for when typing feels easier than speaking)"
+        className="block w-full text-xs sm:text-sm text-slate-100 placeholder-slate-500 border border-slate-800 rounded-xl p-3 bg-slate-950 focus:outline-none focus:ring-2 focus:ring-teal-400 transition-all resize-y"
+      />
+    </div>
+  );
+}
+
 /** Main Sanctuary Input Form container */
 export function SanctuaryInputForm({ onSubmit, isLoading, onCrisisTrigger, voiceMode, transcript, interimTranscript, canUseVoice, onStartListening, onStopListening }: SanctuaryInputFormProps): React.JSX.Element {
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionTap | null>(null);
+  const [typedText, setTypedText] = useState<string>("");
   const [imageBase64, setImageBase64] = useState<string | undefined>(undefined);
   const [imageName, setImageName] = useState<string | null>(null);
 
@@ -195,14 +216,17 @@ export function SanctuaryInputForm({ onSubmit, isLoading, onCrisisTrigger, voice
 
   const handleFormSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
-    const inputType: InputType = transcript ? "voice" : imageBase64 ? "image" : selectedEmotion ? "emotion" : "emotion";
+    const combinedText = [transcript, typedText.trim()].filter(Boolean).join(" | ");
+    const inputType: InputType = transcript ? "voice" : imageBase64 ? "image" : typedText.trim() ? "emotion" : selectedEmotion ? "emotion" : "emotion";
+    const textToSend = combinedText || undefined;
+    setTypedText("");
     await onSubmit({
       userId: "sanctuary-user-01",
       inputType,
       emotionTap: selectedEmotion ?? undefined,
       audioBase64: undefined,
       imageBase64,
-      transcriptText: transcript || undefined,
+      transcriptText: textToSend,
       userProfile: {
         name: DEFAULT_USER_PROFILE.name,
         substanceType: DEFAULT_USER_PROFILE.substanceType,
@@ -217,6 +241,7 @@ export function SanctuaryInputForm({ onSubmit, isLoading, onCrisisTrigger, voice
     <form onSubmit={handleFormSubmit} className="space-y-4">
       <SanctuaryFormHeader onCrisisTrigger={onCrisisTrigger} />
       <EmotionOrbs selected={selectedEmotion} onSelect={setSelectedEmotion} disabled={isDisabled} />
+      <TextSection typedText={typedText} onTextChange={(e) => setTypedText(e.target.value)} disabled={isDisabled} />
       <LiveVoiceSection voiceMode={voiceMode} transcript={transcript} interimTranscript={interimTranscript} canUseVoice={canUseVoice} onStart={onStartListening} onStop={onStopListening} disabled={isDisabled} />
       <ImageSection imageName={imageName} onImageChange={handleImageChange} disabled={isDisabled} />
       <button type="submit" disabled={isDisabled} aria-busy={isLoading} className="w-full py-3.5 bg-teal-700 hover:bg-teal-600 disabled:opacity-50 text-white font-bold rounded-xl shadow-md transition-colors focus:outline-none focus:ring-2 focus:ring-teal-400">

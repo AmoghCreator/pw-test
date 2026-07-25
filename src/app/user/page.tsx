@@ -13,10 +13,11 @@ import type { GenerateResult, GeminiOutput } from "@/lib/types";
 import type { ValidatedGenerateRequest } from "@/lib/validators";
 
 /** Builds a voice check-in request */
-function buildVoiceRequest(): ValidatedGenerateRequest {
+function buildVoiceRequest(spokenText?: string): ValidatedGenerateRequest {
   return {
     userId: "sanctuary-user-01",
     inputType: "voice",
+    transcriptText: spokenText,
     userProfile: {
       name: "User",
       substanceType: "alcohol",
@@ -117,8 +118,8 @@ export default function SanctuaryUserPage(): React.JSX.Element {
     }
   }, []);
 
-  const handleVoiceTranscript = useCallback(async (): Promise<void> => {
-    await handleCheckin(buildVoiceRequest());
+  const handleVoiceTranscript = useCallback(async (text?: string): Promise<void> => {
+    await handleCheckin(buildVoiceRequest(text));
   }, [handleCheckin]);
 
   const voiceState = useVoiceConversation(handleVoiceTranscript);

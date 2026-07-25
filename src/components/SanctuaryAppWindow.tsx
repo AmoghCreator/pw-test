@@ -63,12 +63,31 @@ function SanctuaryAppHeader(): React.JSX.Element {
   );
 }
 
-/** Renders the welcoming instruction banner inside the User App */
-function SanctuaryWelcomeBanner(): React.JSX.Element {
+const INSPIRATIONAL_QUOTES = [
+  { quote: "Recovery is not for people who need it, it's for people who want it.", author: "Daily Reflection" },
+  { quote: "One day at a time. You don't have to see the whole staircase, just take the first step.", author: "Active Recovery" },
+  { quote: "Your present circumstances don't determine where you can go; they merely determine where you start.", author: "Haven Wisdom" },
+  { quote: "Healing doesn't mean the damage never existed. It means the damage no longer controls your life.", author: "Sanctuary Daily" },
+];
+
+/** Renders daily inspirational quote and check-in notification badge */
+function ActiveRecoveryGreeting(): React.JSX.Element {
+  const [quoteIdx] = React.useState(() => Math.floor(Math.random() * INSPIRATIONAL_QUOTES.length));
+  const item = INSPIRATIONAL_QUOTES[quoteIdx];
   return (
-    <section aria-label="Sanctuary Welcome" className="bg-emerald-950/40 border border-emerald-800/50 rounded-2xl p-3.5 text-xs text-slate-200 shadow-inner">
-      <p className="font-bold text-emerald-300 flex items-center gap-1.5"><span aria-hidden="true">✨</span> Zero-typing support ready</p>
-      <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">Select how you feel below or tap the microphone to speak naturally.</p>
+    <section aria-label="Active Recovery Inspiration Greeting" className="bg-gradient-to-br from-emerald-950/70 via-slate-900 to-teal-950/50 border border-emerald-500/40 rounded-2xl p-4 text-xs text-slate-200 shadow-lg relative overflow-hidden">
+      <div aria-hidden="true" className="absolute -right-4 -top-4 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl pointer-events-none" />
+      <div className="flex items-center justify-between gap-2 border-b border-emerald-800/50 pb-2 mb-2">
+        <span className="font-extrabold text-emerald-300 flex items-center gap-1.5 uppercase tracking-wider text-[10px]">
+          <span aria-hidden="true">🌅</span> Active Recovery Daily
+        </span>
+        <span className="bg-emerald-900/80 text-emerald-300 border border-emerald-600/50 px-2 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-1 shadow-sm">
+          <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          Caregiver Notified of Check-in
+        </span>
+      </div>
+      <blockquote className="text-xs font-semibold text-white italic leading-relaxed">&ldquo;{item.quote}&rdquo;</blockquote>
+      <p className="text-[10px] text-emerald-400/90 font-bold mt-1 text-right">&mdash; {item.author}</p>
     </section>
   );
 }
@@ -77,7 +96,7 @@ function SanctuaryWelcomeBanner(): React.JSX.Element {
 function SanctuaryAppBody(props: SanctuaryAppWindowProps): React.JSX.Element {
   return (
     <div className="px-4 sm:px-5 py-4 space-y-5 flex-1 overflow-y-auto bg-gradient-to-b from-slate-950 via-slate-900 to-emerald-950/30">
-      <SanctuaryWelcomeBanner />
+      <ActiveRecoveryGreeting />
       <SanctuaryInputForm
         onSubmit={props.onSubmit}
         isLoading={props.isLoading}

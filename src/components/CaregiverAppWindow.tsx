@@ -67,6 +67,33 @@ function CaregiverAppHeader({ count }: { count: number }): React.JSX.Element {
   );
 }
 
+/** Renders prominent Privacy Shield badge explaining zero-speech quote leakage */
+function PrivacyShieldBadge(): React.JSX.Element {
+  return (
+    <section aria-label="Privacy Shield Active Indicator" className="bg-gradient-to-r from-teal-950/90 via-cyan-950/80 to-slate-900 border border-teal-500/40 rounded-2xl p-3.5 text-xs text-slate-200 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 relative overflow-hidden">
+      <div aria-hidden="true" className="absolute -left-6 -bottom-6 w-24 h-24 bg-teal-500/10 rounded-full blur-xl pointer-events-none" />
+      <div className="flex items-center gap-2.5">
+        <div className="w-8 h-8 rounded-xl bg-teal-500/20 border border-teal-400/50 flex items-center justify-center text-teal-300 text-base shadow-inner shrink-0">
+          <span aria-hidden="true">🛡️</span>
+        </div>
+        <div>
+          <h4 className="text-xs font-extrabold text-teal-300 tracking-tight flex items-center gap-1.5 uppercase">
+            <span>🔒 Privacy Shield Active</span>
+            <span className="bg-teal-900/80 text-teal-200 border border-teal-600/50 px-1.5 py-0.2 text-[9px] rounded font-bold">Zero-Speech Leak</span>
+          </h4>
+          <p className="text-[11px] text-slate-300 leading-tight mt-0.5">
+            Architectural isolation: Raw quotes stay on user device/LLM. Caregiver receives abstracted medical guidance only.
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 bg-slate-950/90 border border-slate-800 px-2.5 py-1 rounded-xl text-[10px] font-bold text-teal-400 shrink-0 self-end sm:self-center">
+        <span aria-hidden="true" className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+        <span>E2E Abstraction</span>
+      </div>
+    </section>
+  );
+}
+
 /** Renders patient status information bar */
 function CaregiverPatientStatusBar(): React.JSX.Element {
   return (
@@ -117,6 +144,7 @@ export function CaregiverAppWindow({ caregiverFeed }: CaregiverAppWindowProps): 
       <CaregiverStatusBar />
       <CaregiverAppHeader count={caregiverFeed.length} />
       <div className="px-4 sm:px-5 py-4 space-y-4 flex-1 flex flex-col overflow-y-auto bg-gradient-to-b from-slate-950 via-slate-900 to-cyan-950/30">
+        <PrivacyShieldBadge />
         <CaregiverPatientStatusBar />
         <CaregiverFeedList feed={caregiverFeed} />
       </div>

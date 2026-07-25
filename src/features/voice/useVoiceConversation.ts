@@ -111,6 +111,18 @@ function parseSpeechResults(event: SpeechRecognitionEvent): { final: string; int
   return { final, interim };
 }
 
+/** Configures standard options on a SpeechRecognition instance */
+function configureRecognition(rec: SpeechRecognition): void {
+  rec.continuous = false;
+  rec.interimResults = true;
+  rec.lang = SPEECH_RECOGNITION_LANG;
+}
+
+/** Safely aborts existing recognition instance */
+function abortRecognition(rec: SpeechRecognition | null): void {
+  if (rec) try { rec.abort(); } catch {}
+}
+
 /**
  * Voice conversation state machine hook.
  * Manages idle → listening → processing → speaking → listening continuous loop.
@@ -143,6 +155,13 @@ export function useVoiceConversation(
     };
   }, []);
 
+  const resetTranscript = useCallback((): void => {
+    transcriptRef.current = "";
+    interimRef.current = "";
+    setTranscript("");
+    setInterimTranscript("");
+  }, []);
+
   const updateTranscript = useCallback((final: string, interim: string): void => {
     if (final) {
       setTranscript((prev) => {
@@ -173,29 +192,29 @@ export function useVoiceConversation(
 
   const startRecognition = useCallback((): void => {
     if (!canUseVoice || !isMountedRef.current || !isLoopActiveRef.current) return;
-    if (recognitionRef.current) try { recognitionRef.current.abort(); } catch {}
+    abortRecognition(recognitionRef.current);
+    resetTranscript();
     const SpeechRecognitionAPI = window.SpeechRecognition ?? window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognitionAPI();
-    recognitionRef.current = recognition;
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = SPEECH_RECOGNITION_LANG;
-    recognition.onstart = () => { if (isMountedRef.current) setVoiceMode("listening"); };
-    recognition.onerror = () => { if (isMountedRef.current && !isLoopActiveRef.current) setVoiceMode("idle"); };
-    recognition.onresult = (e: SpeechRecognitionEvent) => {
-      if (!isMountedRef.current) return;
-      const { final, interim } = parseSpeechResults(e);
-      updateTranscript(final, interim);
+    const rec = new SpeechRecognitionAPI();
+    recognitionRef.current = rec;
+    configureRecognition(rec);
+    rec.onstart = () => { if (isMountedRef.current) setVoiceMode("listening"); };
+    rec.onerror = () => { if (isMountedRef.current && !isLoopActiveRef.current) setVoiceMode("idle"); };
+    rec.onresult = (e: SpeechRecognitionEvent) => {
+      if (isMountedRef.current) {
+        const { final, interim } = parseSpeechResults(e);
+        updateTranscript(final, interim);
+      }
     };
-    recognition.onend = () => {
+    rec.onend = () => {
       if (!isMountedRef.current) return;
       const finalText = (transcriptRef.current || interimRef.current).trim();
       if (finalText) void submitTranscript(finalText);
       else if (isLoopActiveRef.current) setTimeout(() => { if (isMountedRef.current && isLoopActiveRef.current) startRecognitionRef.current?.(); }, 300);
       else setVoiceMode("idle");
     };
-    recognition.start();
-  }, [canUseVoice, submitTranscript, updateTranscript]);
+    rec.start();
+  }, [canUseVoice, resetTranscript, submitTranscript, updateTranscript]);
 
   useEffect(() => {
     startRecognitionRef.current = startRecognition;
@@ -234,13 +253,6 @@ export function useVoiceConversation(
         }
       }
     }
-  }, []);
-
-  const resetTranscript = useCallback((): void => {
-    transcriptRef.current = "";
-    interimRef.current = "";
-    setTranscript("");
-    setInterimTranscript("");
   }, []);
 
   return {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { generateDualChannelGuidance } from "./gemini";
+import { generateDualChannelGuidance, getFallbackGuidance } from "./gemini";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -78,3 +78,17 @@ describe("generateDualChannelGuidance", () => {
     await expect(generateDualChannelGuidance(VALID_INPUT)).rejects.toThrow();
   });
 });
+
+describe("getFallbackGuidance", () => {
+  it("returns full guided meditation when user requests meditation", () => {
+    const input = {
+      ...VALID_INPUT,
+      inputType: "voice" as const,
+      transcriptText: "please do a garden meditation",
+    };
+    const result = getFallbackGuidance(input);
+    expect(result.user_facing.grounding_text).toContain("Step 1:");
+    expect(result.user_facing.grounding_text).toContain("Step 6:");
+  });
+});
+
